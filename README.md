@@ -1,5 +1,14 @@
 # Nextcloud: Mattermost app
+
+Post file activities in mattermost channels
+
+## Installation
+
 Place this app in **nextcloud/apps/**
+
+## Configuration
+
+Create a Webhook in Mattermost and store it in Nextcloud => Additional Settings
 
 ## Building the app
 
