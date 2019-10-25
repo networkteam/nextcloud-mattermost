@@ -73,7 +73,7 @@ class FileHooks {
 		$groups = [];
 		/** @var Share $share */
 		foreach ($shares as $share) {
-			if ($share->getShareType() == \OCP\Share::SHARE_TYPE_GROUP && $share->getNodeType() === 'folder') {
+			if ($share->getShareType() === \OCP\Share::SHARE_TYPE_GROUP && $share->getNodeType() === 'folder') {
 				$groups[] = $share->getSharedWith();
 			}
 		}
