@@ -15,6 +15,11 @@ use OCP\Share\IShareProvider;
 class FileHooks {
 
 	public static function postCreate(Node $file, Server $server) {
+		if (strpos($file->getPath(), '/preview/') !== false) {
+			// Do not post when preview images are created
+			return;
+		}
+
 		/** @var IConfig $settingsManager */
 		$settingsManager = \OC::$server->query(IConfig::class);
 
