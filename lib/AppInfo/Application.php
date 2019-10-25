@@ -15,7 +15,7 @@ class Application extends App {
 		$dispatcher->addListener('\OCP\Files::postCreate', function (GenericEvent $event) {
 			if ($event->getSubject() instanceof Node) {
 				try {
-					FileHooks::postCreate($event->getSubject());
+					FileHooks::postCreate($event->getSubject(), $this->getContainer()->getServer());
 				} catch (\Exception $exception) {
 				}
 			}
