@@ -11,91 +11,131 @@ use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IUserSession;
 use OCP\Share\IShareProvider;
+use Psr\Http\Message\ResponseInterface;
 
 class FileHooks
 {
 
-    public static function postCreate(Node $file, Server $server)
+    public static function postCreate(Node $file, Server $server): void
     {
-        if (strpos($file->getPath(), '/preview/') !== false) {
-            // Do not post when preview images are created
-            return;
-        }
+        try {
+            if (strpos($file->getPath(), '/preview/') !== false) {
+                // Do not post when preview images are created
+                throw new \Exception('Preview image is not supported.', 1572013690);
+            }
 
-        /** @var IConfig $settingsManager */
-        $settingsManager = \OC::$server->query(IConfig::class);
+            $hookUrl = self::getAppSetting('hook_url');
 
-        $hookUrl = $settingsManager->getAppValue('mattermost', 'hook_url');
-        if ($hookUrl) {
-            $url = $server->getURLGenerator()->linkToRouteAbsolute('files.viewcontroller.showFile',
-                ['fileid' => $file->getId()]);
+            if (empty($hookUrl)) {
+                throw new \Exception('Setting "hook_url" is empty.', 1572013591);
+            }
 
-            $markDownLink = sprintf("[%s](%s)", $file->getName(), $url);
-            $payload = [
-                'username' => 'nextcloud',
-                'text' => sprintf("User %s created file %s in path %s",
-                    $file->getFileInfo()->getOwner()->getDisplayName(), $markDownLink, $file->getFileInfo()->getPath())
-            ];
+            $groupNameRegex = self::getAppSetting('group_name_regex');
+            $defaultPayload = self::getMattermostPayload($file, $server);
 
-            $client = new Client();
-            $groupNameRegex = $settingsManager->getAppValue('mattermost', 'group_name_regex');
-            if ($groupNameRegex) {
+            if (empty($groupNameRegex)) {
+                self::makeMattermostRequest($hookUrl, $defaultPayload);
+            } else {
                 $channels = self::getChannels($groupNameRegex, $file, $server);
                 if (count($channels) > 0) {
                     foreach ($channels as $channel) {
-                        $channelPayload = $payload;
-                        $channelPayload['channel'] = $channel;
-                        $response = $client->request('POST', $hookUrl, [
-                            'json' => $channelPayload
+                        $payload = array_merge($defaultPayload, [
+                            'channel' => $channel
                         ]);
+
+                        self::makeMattermostRequest($hookUrl, $payload);
                     }
                 } else {
-                    $response = $client->request('POST', $hookUrl, [
-                        'json' => $payload
-                    ]);
+                    self::makeMattermostRequest($hookUrl, $defaultPayload);
                 }
-            } else {
-                $response = $client->request('POST', $hookUrl, [
-                    'json' => $payload
-                ]);
             }
 
-            // Todo: Check response
-            // Todo: Add background job if post failed
+            // TODO: Add background job if post failed
+
+        } catch (\Exception $e) {
+
         }
+    }
+
+    /**
+     * @param string $key
+     * @return string
+     * @throws \OCP\AppFramework\QueryException
+     */
+    protected static function getAppSetting(string $key): string
+    {
+        /** @var IConfig $settingsManager */
+        $settingsManager = \OC::$server->query(IConfig::class);
+        return $settingsManager->getAppValue('mattermost', $key);
+    }
+
+    /**
+     * @param Node $file
+     * @param Server $server
+     * @return array
+     * @throws \OCP\Files\InvalidPathException
+     * @throws \OCP\Files\NotFoundException
+     */
+    protected static function getMattermostPayload(Node $file, Server $server): array
+    {
+        $url = $server->getURLGenerator()->linkToRouteAbsolute(
+            'files.viewcontroller.showFile',
+            [
+                'fileid' => $file->getId()
+            ]
+        );
+
+        $payload = [
+            'username' => 'nextcloud',
+            'text' => sprintf(
+                "%s created file [%s](%s) in path *%s*.",
+                $file->getFileInfo()->getOwner()->getDisplayName(),
+                $file->getName(),
+                $url,
+                $file->getFileInfo()->getPath()
+            )
+        ];
+
+        return $payload;
     }
 
     protected static function getChannels($groupNameRegex, Node $file, $server): array
     {
-        /** @var IUserSession $sessionManager */
-        $sessionManager = \OC::$server->query(IUserSession::class);
-        $currentUser = $sessionManager->getUser();
-
-        /** @var IGroupManager $groupManager */
-        $groupManager = \OC::$server->query(IGroupManager::class);
-        $groups = $groupManager->getUserGroups($currentUser);
-
         /** @var IShareProvider $shareProvider */
         $factory = new ProviderFactory($server);
         $shareProvider = $factory->getProviderForType(\OCP\Share::SHARE_TYPE_GROUP);
         $shares = $shareProvider->getSharesByPath($file->getParent());
 
-        $groups = [];
+        $groupMatches = [];
         /** @var Share $share */
         foreach ($shares as $share) {
-            if ($share->getShareType() === \OCP\Share::SHARE_TYPE_GROUP && $share->getNodeType() === 'folder') {
-                $groups[] = $share->getSharedWith();
+            $isSharedGroupFolder = $share->getShareType() === \OCP\Share::SHARE_TYPE_GROUP && $share->getNodeType() === 'folder';
+
+            if ($isSharedGroupFolder) {
+                $matches = [];
+                $groupName = $share->getSharedWith();
+
+                preg_match(strtolower($groupNameRegex), $groupName, $matches);
+
+                if (count($matches) > 0) {
+                    $groupMatches = array_merge($groupMatches, $matches);
+                }
             }
         }
 
-        $groupsMatches = [];
-        foreach ($groups as $groupName) {
-            preg_match(strtolower($groupNameRegex), $groupName, $matches);
-            if (count($matches) > 0) {
-                $groupsMatches = array_merge($groupsMatches, $matches);
-            }
-        }
+        return array_unique($groupMatches);
+    }
 
-        return array_unique($groupsMatches);
+    protected static function makeMattermostRequest(string $hookUrl, array $payload): ResponseInterface
+    {
+        $client = new Client();
+
+        $response = $client->request('POST', $hookUrl, [
+            'json' => $payload
+        ]);
+
+        // TODO: validate response
+
+        return $response;
     }
 }
