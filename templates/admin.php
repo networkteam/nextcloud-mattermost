@@ -17,8 +17,8 @@ script('mattermost', 'admin');
 
 		<h3>Magic channel</h3>
 		<p class="settings-hint">Use regex to post in channels matching group names. Leave empty to post in webhooks default channel. Notice: Deactivate "Lock to this channel" when using the regex (Default)</p>
-		<input type="text" name="mattermost_group_name_regex" id="mattermost_group_name_regex" style="width: 100%; max-width: 400px"
-			   value="<?php echo $_['group_name_regex'] ?>" placeholder="/^(project-.*)/"/><br><br>
+		<input type="text" name="mattermost_magic_channel_regex" id="mattermost_magic_channel_regex" style="width: 100%; max-width: 400px"
+			   value="<?php echo $_['magic_channel_regex'] ?>" placeholder="/^(project-.*)/"/><br><br>
 		<button id="mattermost_save_button"><?php p($l->t('Save')); ?></button>
 	</form>
 </div>

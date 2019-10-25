@@ -39,7 +39,7 @@ class AdminSettings implements ISettings {
 	public function getForm() {
 		$parameters = [
 			'hook_url' => $this->config->getAppValue('mattermost', 'hook_url', ''),
-			'group_name_regex' => $this->config->getAppValue('mattermost', 'group_name_regex', '')
+			'magic_channel_regex' => $this->config->getAppValue('mattermost', 'magic_channel_regex', '')
 		];
 
 		return new TemplateResponse('mattermost', 'admin', $parameters);

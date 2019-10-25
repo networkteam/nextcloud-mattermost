@@ -7,8 +7,8 @@ $(document).ready(function() {
 			$("#mattermost_hook_url").val()
 		);
 		OCP.AppConfig.setValue(
-			'mattermost', 'group_name_regex',
-			$("#mattermost_group_name_regex").val()
+			'mattermost', 'magic_channel_regex',
+			$("#mattermost_magic_channel_regex").val()
 		);
 	});
 });

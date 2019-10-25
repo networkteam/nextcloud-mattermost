@@ -30,13 +30,13 @@ class FileHooks
                 throw new \Exception('Setting "hook_url" is empty.', 1572013591);
             }
 
-            $groupNameRegex = self::getAppSetting('group_name_regex');
+            $magicChannelRegex = self::getAppSetting('magic_channel_regex');
             $defaultPayload = self::getMattermostPayload($file, $server);
 
-            if (empty($groupNameRegex)) {
+            if (empty($magicChannelRegex)) {
                 self::makeMattermostRequest($hookUrl, $defaultPayload);
             } else {
-                $channels = self::getChannels($groupNameRegex, $file, $server);
+                $channels = self::getChannels($magicChannelRegex, $file, $server);
                 if (count($channels) > 0) {
                     foreach ($channels as $channel) {
                         $payload = array_merge($defaultPayload, [
@@ -99,7 +99,7 @@ class FileHooks
         return $payload;
     }
 
-    protected static function getChannels($groupNameRegex, Node $file, $server): array
+    protected static function getChannels($magicChannelRegex, Node $file, $server): array
     {
         /** @var IShareProvider $shareProvider */
         $factory = new ProviderFactory($server);
@@ -115,7 +115,7 @@ class FileHooks
                 $matches = [];
                 $groupName = $share->getSharedWith();
 
-                preg_match(strtolower($groupNameRegex), $groupName, $matches);
+                preg_match(strtolower($magicChannelRegex), $groupName, $matches);
 
                 if (count($matches) > 0) {
                     $groupMatches = array_merge($groupMatches, $matches);
