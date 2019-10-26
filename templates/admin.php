@@ -15,6 +15,11 @@ script('mattermost', 'admin');
 		<input type="text" name="mattermost_hook_url" id="mattermost_hook_url" style="width: 100%; max-width: 400px" placeholder="https://mattermost.your-domain.com/hooks/abcdef123"
 			   value="<?php echo $_['hook_url'] ?>"/><br>
 
+		<h3><?php p($l->t('Group filter regex')); ?></h3>
+        <p class="settings-hint">Post only if this regex matches group names. Leave empty to post for all users</p>
+		<input type="text" name="mattermost_filter_regex" id="mattermost_filter_regex" style="width: 100%; max-width: 400px" placeholder="/^(customer-.*)/"
+			   value="<?php echo $_['filter_regex'] ?>"/><br>
+
 		<h3>Magic channel</h3>
 		<p class="settings-hint">Use regex to post in channels matching group names. Leave empty to post in webhooks default channel. Notice: Deactivate "Lock to this channel" when using the regex (Default)</p>
 		<input type="text" name="mattermost_magic_channel_regex" id="mattermost_magic_channel_regex" style="width: 100%; max-width: 400px"

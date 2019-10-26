@@ -10,5 +10,9 @@ $(document).ready(function() {
 			'mattermost', 'magic_channel_regex',
 			$("#mattermost_magic_channel_regex").val()
 		);
+		OCP.AppConfig.setValue(
+			'mattermost', 'filter_regex',
+			$("#mattermost_filter_regex").val()
+		);
 	});
 });

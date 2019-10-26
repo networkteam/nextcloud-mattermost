@@ -25,9 +25,13 @@ class FileHooks
             }
 
             $hookUrl = self::getAppSetting('hook_url');
-
             if (empty($hookUrl)) {
                 throw new \Exception('Setting "hook_url" is empty.', 1572013591);
+            }
+
+            $filterRegex = self::getAppSetting('filter_regex');
+            if ($filterRegex && !self::shouldHandleEventBasedOnCurrentUserGroups($server, $filterRegex)) {
+                return;
             }
 
             $magicChannelRegex = self::getAppSetting('magic_channel_regex');
@@ -99,7 +103,7 @@ class FileHooks
         return $payload;
     }
 
-    protected static function getChannels($magicChannelRegex, Node $file, $server): array
+    protected static function getChannels(string $magicChannelRegex, Node $file, $server): array
     {
         /** @var IShareProvider $shareProvider */
         $factory = new ProviderFactory($server);
@@ -137,5 +141,21 @@ class FileHooks
         // TODO: validate response
 
         return $response;
+    }
+
+    protected static function shouldHandleEventBasedOnCurrentUserGroups(Server $server, string $filterRegex): bool
+    {
+        $currentUser = $server->getUserSession()->getUser();
+        $groups = $server->getGroupManager()->getUserGroups($currentUser);
+
+        foreach ($groups as $group) {
+            preg_match(strtolower($filterRegex), $group->getDisplayName(), $matches);
+
+            if (count($matches) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
